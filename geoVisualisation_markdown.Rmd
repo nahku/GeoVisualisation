@@ -1,0 +1,119 @@
+---
+title: "Geo_Visualisation"
+author: "Nahku Saidy"
+date: "1/19/2020"
+output:
+  html_document: default
+  pdf_document: default
+---
+Einbinden der benötigten Bibliotheken
+
+```{r setup, include=FALSE}
+library(sf)
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(ggmap)
+library(osmdata)
+library(readxl)
+```
+
+# Geo-Visualisierung
+
+### Aufgabenstellung:
+Die Aufgabe besteht in der Darstellung von Daten im Kontext geographischer Karten, z.B. Wahlkreise und der Anteil von Stimmen für bestimmte Parteien und die Arbeitslosenquote in diesen Bezirken.
+
+### Einführung
+Im Folgenden wird in die geographische Visualisierung mit R eingeführt. Es werden die Grundlagen zum Darstellen von Daten in geographischem Kontext behandelt sowie an zwei konkreten Beispielen vorgestellt. todo mehr
+
+### Zeichnen von geographischen Karten
+Die Grundlage zum Zeichnen von geographischen Grenzen bilden die sogenannten Shape-Files. In diesem Format lassen sich Geometriedaten leicht darstellen. In diesem Projekt wird ein Shape-File zur Darstellung der Grenzen der deutschen Bundesländer verwendet. Dieses [Shape-File](https://gdz.bkg.bund.de/index.php/default/digitale-geodaten/verwaltungsgebiete/nuts-gebiete-1-250-000-stand-01-01-nuts250-01-01.html) wird von dem Bundesamt für Kartographie und Geodäsie bereitgestellt. Im Folgenden Code-Ausschnitt wird das Shape-File eingelesen und beispielhaft die darin enthaltenen Daten ausgegeben.
+```{r import shape}
+map <- st_read("data/2500_NUTS1.shp", stringsAsFactors=FALSE)
+map = st_transform(map,3857)
+ggplot(map) + geom_sf()
+```
+
+Neben reinen Shape-Files gibt es in R die Möglichkeit auch todo "realistischere" Karten zu zeichnen. Hier wird beispielhaft eine Karte von Deutschland von [OpenStreetMap](https://www.openstreetmap.de) gezeichnet.
+
+```{r import openstreetmap, message= FALSE}
+germany_map <- get_map(getbb("Deutschland", base_url = "https://nominatim.openstreetmap.org", featuretype = "country"),maptype = "toner-background")
+ggmap(germany_map)
+```
+
+### Binnenwanderung
+Um die Möglichkeiten der Darstellung von Daten in geographischem Kontext zu demonstrieren werden nun Daten aus einem Datensatz zur Binnenwanderung in Deutschland analysiert und dargestellt. Dieser wird zuerst importiert und die zu visualisierenden Daten in Data Frames verpackt. Die Daten enthalten das Saldo der Binnenwanderung für jedes Bundesland von Deutschen und Ausländern.
+
+```{r import binnenwanderung}
+binnenwanderung_data <- read_excel("binnenwanderung.xlsx")
+states <- map$NUTS_NAME
+movement_per_state <- data.frame(matrix(ncol = 16, nrow = 16))
+x <- c("NUTS_NAME",sprintf("%s",2003:2017))
+colnames(movement_per_state) <- x
+movement_per_state_mean <- data.frame(NUTS_NAME = c(1:16), Mean_Migration = c(1:16))
+
+for(i in 1:length(states)){
+  index <- which(binnenwanderung_data == states[i], arr.ind = TRUE)[1]+2
+  row_data = binnenwanderung_data[index,-1:-3]
+  data_frame_row = c(c(states[i]), row_data)
+  names(data_frame_row) <- x
+  movement_per_state[i,] = data_frame_row
+  movement_per_state_mean$NUTS_NAME[i] = states[i]
+  movement_per_state_mean$Mean_Migration[i] = mean(as.numeric(as.character(row_data)))
+}
+str(movement_per_state)
+str(movement_per_state_mean)
+```
+
+Diese Daten werden aufgesplittet in neue und alte Bundesländer, wobei Berlin als altes Bundesland gezählt wird, da im Datensatz nicht zwischen West- und Ostberlin unterschieden wird.
+
+```{r prepare binnenwanderung}
+new_states = c("Brandenburg","Mecklenburg-Vorpommern","Sachsen","Sachsen-Anhalt","Thüringen")
+new_states_movement = movement_per_state[movement_per_state$NUTS_NAME %in% new_states,]
+new_states_movement = new_states_movement[1:5,]
+data_of_new_states = colSums(new_states_movement[,-1])
+
+`%notin%` <- Negate(`%in%`)
+
+old_states_movement = movement_per_state[movement_per_state$NUTS_NAME %notin% new_states,]
+old_states_movement = old_states_movement[1:11,]
+data_of_old_states = colSums(old_states_movement[,-1])
+```
+
+Im Folgenden wird der Vergleich des Saldos der Binnenwanderung zwischen den neuen und alten Bundesländern zwischen 2003 und 2017 in einem Plot dargestellt.
+
+```{r plot binnenwanderung, echo=FALSE}
+plot(data_of_old_states,type = "o",col = "blue",xaxt="n",ylim=c(-55000,55000),xlab="Jahr",ylab="Saldo",main="Saldo der Binnenwanderung zwischen neuen und alten Bundesländern",sub="(Berlin wird hier zu den alten Bundesländern gezählt)")
+lines(data_of_new_states,type = "o",col = "red")
+axis(1,at=1:15,lab=c(2003:2017))
+grid(nx = NULL, ny = NULL, col = "black", lty = "dotted")
+legend(10,-35000,legend=c("Alte Bundesländer","Neue Bundesländer"),col =c("blue","red"),lty=1,cex=1)
+```
+
+Es ist zu erkennen, dass die Abwanderung von Einwohnern von Ost- nach Westdeutschland bis 2013 immer weiter abgenommen hat. Danach kam es 2014 erstmals zu einer Abwanderung von Einwohnern von West- nach Ostdeutschland.  
+Eine geographische Darstellung des Durchschnitts des Saldos der Binnenwanderung je Bundesland lässt sich mit folgendem Code realisieren.
+
+```{r geoplot binnenwanderung mean, message= FALSE}
+ggmap_bbox <- function(map) {
+  # Extract the bounding box (in lat/lon) from the ggmap to a numeric vector, 
+  # and set the names to what sf::st_bbox expects:
+  map_bbox <- setNames(unlist(attr(map, "bb")), 
+                       c("ymin", "xmin", "ymax", "xmax"))
+  
+  # Coonvert the bbox to an sf polygon, transform it to 3857, 
+  # and convert back to a bbox (convoluted, but it works)
+  bbox_3857 <- st_bbox(st_transform(st_as_sfc(st_bbox(map_bbox, crs = 4326)), 3857))
+  
+  # Overwrite the bbox of the ggmap object with the transformed coordinates 
+  attr(map, "bb")$ll.lat <- bbox_3857["ymin"]
+  attr(map, "bb")$ll.lon <- bbox_3857["xmin"]
+  attr(map, "bb")$ur.lat <- bbox_3857["ymax"]
+  attr(map, "bb")$ur.lon <- bbox_3857["xmax"]
+  map
+}
+
+germany_map <- ggmap_bbox(germany_map)
+merged_movement_mean <- left_join(map,movement_per_state_mean,by="NUTS_NAME")
+ggmap(germany_map) + coord_sf(crs=st_crs(3857)) + geom_sf(data=merged_movement_mean, aes(fill= merged_movement_mean$Mean_Migration), inherit.aes = FALSE,alpha=0.5)+
+  scale_fill_gradient2(low= "#00008B", mid="white",high = "#FF3300")
+```
