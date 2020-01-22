@@ -119,21 +119,23 @@ ggmap_bbox <- function(map) {
 germany_map <- ggmap_bbox(germany_map)
 merged_movement_mean <- left_join(map,movement_per_state_mean,by="NUTS_NAME")
 ggmap(germany_map) + coord_sf(crs=st_crs(3857)) + geom_sf(data=merged_movement_mean, aes(fill= Mean_Migration), inherit.aes = FALSE,alpha=0.5)+
-  scale_fill_gradient2(low= "#CC0033", mid="white",high = "#006633")
+  scale_fill_gradient2(low= "#CC0033", mid="white",high = "#006633") + ggtitle("Durchschnitt des Saldos der Binnenwanderung in Deutschland")
 ```
 
-Das gesamte Saldo ist im nächsten Plot dargestellt.
-Hier fehlt noch plot von kumuliert auf 5 jahre oder so.
+Das gesamte Saldo von 2013 bist 2017 ist im nächsten Plot dargestellt.
+
 
 ```{r geoplot binnenwanderung sum, message= FALSE}
 merged_movement_sum<- left_join(map,movement_per_state_sum,by="NUTS_NAME")
 ggmap(germany_map) + coord_sf(crs=st_crs(3857)) + geom_sf(data=merged_movement_sum, aes(fill= Sum_Migration), inherit.aes = FALSE,alpha=0.7)+
-  scale_fill_gradient2(low= "#CC0033", mid="white",high = "#006633") 
+  scale_fill_gradient2(low= "#CC0033", mid="white",high = "#006633") + ggtitle("Summe des Saldos der Binnenwanderung in Deutschland")
 ```
 
+Hier fehlt noch plot von kumuliert auf 5 jahre oder so.
 
+### Wahlergebnisse der AfD
 
-```{r vote income data, message= FALSE}
+```{r vote income data, message= FALSE,warning=FALSE}
 votes <- read.csv(file="btw17_kerg.csv", sep=";")
 extracted_votes <- data.frame(Votes = votes$X.16, VotesAfD = votes$X.44)
 extracted_votes$Votes <- as.numeric(as.character(extracted_votes$Votes))
@@ -150,22 +152,32 @@ income <- read.csv(file="Stimmenanzahl2.csv", sep=";", colClasses=c("NULL", "NUL
 income <- data.frame(NUTS_NAME = map$NUTS_NAME, NETTOEINKOMMEN = income)
 ```
 
+Im Folgenden wird das durchschnittliche Einkommen und der Stimmenanteil der AfD pro Bundesland in Deutschland dargestellt
 
-```{r geoplot income and voted, message= FALSE}
+```{r geoplot income and voted, message= FALSE, warning=FALSE}
 merged_stimmen <- left_join(map,votes_per_state,by="NUTS_NAME")
-plot_stimmen <- ggplot(merged_stimmen) + geom_sf(aes(fill= Votes_AfD))+
- scale_fill_gradient(low= "#E0E0E0",high = "#FF3300")
 
 merged_einkommen <- left_join(map,income,by="NUTS_NAME")
-plot_einkommen <- ggplot(merged_einkommen) + geom_sf(aes(fill= Nettoeinkommen))+
-  scale_fill_gradient(low= "#E0E0E0", high = "#FF3300")
 
-grid.arrange(plot_stimmen, plot_einkommen, ncol=2)
+plot_stimmen <- ggmap(germany_map) + coord_sf(crs=st_crs(3857)) + geom_sf(data=merged_stimmen, aes(fill= Votes_AfD), inherit.aes = FALSE,alpha=0.7)+
+  scale_fill_gradient2("Stimmenanteil der AfD",low= "white", high = "#00008B")  + ggtitle("Stimmenanteil der AfD")
+
+plot_einkommen <- ggmap(germany_map) + coord_sf(crs=st_crs(3857)) + geom_sf(data=merged_einkommen, aes(fill= Nettoeinkommen), inherit.aes = FALSE,alpha=0.7)+
+  scale_fill_gradient2("Nettoeinkommen",low= "white", high = "#00008B") + ggtitle("Durchschnittliches Einkommen")
+
+grid.arrange(plot_stimmen, plot_einkommen, nrow=2)
 ```
 
 
+Korrelation des Durchschnittseinkommens mit dem Wahlergebnis pro Bundesland korreliert.
+Zum Schluss wird hier die
+
+
 ```{r correlate income and votes}
+
+
 x <- votes_per_state[,2]
 y <- income[,2]
+plot(x,y,xlab = "Stimmen für die AFD in %", ylab = "Durchschnittliches Einkommen in €")
 cor.test(x,y,method="pearson")
 ```
