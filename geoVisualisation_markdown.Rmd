@@ -24,17 +24,17 @@ library(readxl)
 Die Aufgabe besteht in der Darstellung von Daten im Kontext geographischer Karten, z.B. Wahlkreise und der Anteil von Stimmen für bestimmte Parteien und die Arbeitslosenquote in diesen Bezirken.
 
 ### Einführung
-Im Folgenden wird in die geographische Visualisierung mit R eingeführt. Es werden die Grundlagen zum Darstellen von Daten in geographischem Kontext behandelt sowie an zwei konkreten Beispielen vorgestellt. todo mehr
+Im Folgenden wird in die geographische Visualisierung mit R eingeführt. Es werden die Grundlagen zum Darstellen von Daten in geographischem Kontext behandelt sowie an zwei konkreten Beispielen vorgestellt. Dabei werden unter anderem Flächenwertstufenkarten verwendet.
 
 ### Zeichnen von geographischen Karten
-Die Grundlage zum Zeichnen von geographischen Grenzen bilden die sogenannten Shape-Files. In diesem Format lassen sich Geometriedaten leicht darstellen. In diesem Projekt wird ein Shape-File zur Darstellung der Grenzen der deutschen Bundesländer verwendet. Ein Shape-File ist Dateiformat welches geographische Vektordaten enthält. Es eignet sich unteranderem zum Zeichnen von Grenzen. Dieses [Shape-File](https://gdz.bkg.bund.de/index.php/default/digitale-geodaten/verwaltungsgebiete/nuts-gebiete-1-250-000-stand-01-01-nuts250-01-01.html) wird von dem Bundesamt für Kartographie und Geodäsie bereitgestellt. Im Folgenden Code-Ausschnitt wird das Shape-File eingelesen und beispielhaft die darin enthaltenen Daten ausgegeben.
+Die Grundlage zum Zeichnen von geographischen Grenzen bilden die sogenannten Shape-Files. In diesem Format lassen sich Geometriedaten leicht darstellen. In diesem Projekt wird ein Shape-File zur Darstellung der Grenzen der deutschen Bundesländer verwendet. Ein Shape-File ist ein Dateiformat welches geographische Vektordaten enthält. Es eignet sich unteranderem zum Zeichnen von Grenzen. Dieses [Shape-File](https://gdz.bkg.bund.de/index.php/default/digitale-geodaten/verwaltungsgebiete/nuts-gebiete-1-250-000-stand-01-01-nuts250-01-01.html) wird von dem Bundesamt für Kartographie und Geodäsie bereitgestellt. Im Folgenden Code-Ausschnitt wird das Shape-File eingelesen und beispielhaft die darin enthaltenen Daten ausgegeben.
 ```{r import shape}
 map <- st_read("data/2500_NUTS1.shp", stringsAsFactors=FALSE)
 map = st_transform(map,3857)
 ggplot(map) + geom_sf()
 ```
 
-Neben reinen Shape-Files gibt es in R die Möglichkeit auch todo "realistischere" Karten zu zeichnen. Hier wird beispielhaft eine Karte von Deutschland von [OpenStreetMap](https://www.openstreetmap.de) gezeichnet.
+Neben reinen Shape-Files gibt es in R die Möglichkeit auch realitätsnähere Karten zu zeichnen. Hier wird beispielhaft eine Karte von Deutschland von [OpenStreetMap](https://www.openstreetmap.de) gezeichnet.
 
 ```{r import openstreetmap, message= FALSE}
 germany_map <- get_map(getbb("Deutschland", base_url = "https://nominatim.openstreetmap.org", featuretype = "country"),maptype = "toner-background")
@@ -95,7 +95,7 @@ legend(10,-35000,legend=c("Alte Bundesländer","Neue Bundesländer"),col =c("blu
 ```
 
 Es ist zu erkennen, dass die Abwanderung von Einwohnern von Ost- nach Westdeutschland bis 2013 immer weiter abgenommen hat. Danach kam es 2014 erstmals zu einer Abwanderung von Einwohnern von West- nach Ostdeutschland.  
-Eine geographische Darstellung des Durchschnitts des Saldos der Binnenwanderung je Bundesland lässt sich mit folgendem Code realisieren.
+Eine geographische Darstellung des Durchschnitts des Saldos der Binnenwanderung je Bundesland lässt sich mit folgendem Code realisieren. Dabei wird die OpenStreetMap als Hintergrund verwendet und die Wahlergebnisse werden darauf auf Basis des Shape-Files dargestellt.
 
 ```{r geoplot binnenwanderung mean, message= FALSE}
 ggmap_bbox <- function(map) {
@@ -119,22 +119,22 @@ ggmap_bbox <- function(map) {
 germany_map <- ggmap_bbox(germany_map)
 merged_movement_mean <- left_join(map,movement_per_state_mean,by="NUTS_NAME")
 ggmap(germany_map) + coord_sf(crs=st_crs(3857)) + geom_sf(data=merged_movement_mean, aes(fill= Mean_Migration), inherit.aes = FALSE,alpha=0.5)+
-  scale_fill_gradient2(low= "#CC0033", mid="white",high = "#006633") + ggtitle("Durchschnitt des Saldos der Binnenwanderung in Deutschland")
+  scale_fill_gradient2("Anzahl Personen",low= "#CC0033", mid="white",high = "#006633") + ggtitle("Durchschnitt des Saldos der Binnenwanderung in Deutschland")
 ```
 
-Das gesamte Saldo von 2013 bist 2017 ist im nächsten Plot dargestellt.
+Das gesamte Saldo von 2013 bist 2017 ist im nächsten Plot dargestellt. 
 
 
 ```{r geoplot binnenwanderung sum, message= FALSE}
 merged_movement_sum<- left_join(map,movement_per_state_sum,by="NUTS_NAME")
 ggmap(germany_map) + coord_sf(crs=st_crs(3857)) + geom_sf(data=merged_movement_sum, aes(fill= Sum_Migration), inherit.aes = FALSE,alpha=0.7)+
-  scale_fill_gradient2(low= "#CC0033", mid="white",high = "#006633") + ggtitle("Summe des Saldos der Binnenwanderung in Deutschland")
+  scale_fill_gradient2("Anzahl Personen",low= "#CC0033", mid="white",high = "#006633") + ggtitle("Summe des Saldos der Binnenwanderung in Deutschland")
 ```
 
 Hier fehlt noch plot von kumuliert auf 5 jahre oder so.
 
 ### Wahlergebnisse der AfD
-
+Im Folgenden werden die Wahlergebnisse der AfD 2017 bei der Bundestagswahl nach Bundesländern implementiert.
 ```{r vote income data, message= FALSE,warning=FALSE}
 votes <- read.csv(file="btw17_kerg.csv", sep=";")
 extracted_votes <- data.frame(Votes = votes$X.16, VotesAfD = votes$X.44)
@@ -152,32 +152,27 @@ income <- read.csv(file="Stimmenanzahl2.csv", sep=";", colClasses=c("NULL", "NUL
 income <- data.frame(NUTS_NAME = map$NUTS_NAME, NETTOEINKOMMEN = income)
 ```
 
-Im Folgenden wird das durchschnittliche Einkommen und der Stimmenanteil der AfD pro Bundesland in Deutschland dargestellt
+Im Folgenden wird das durchschnittliche Einkommen und der Stimmenanteil der AfD pro Bundesland bei der Bundestagswahl 2017 in Deutschland dargestellt.
 
 ```{r geoplot income and voted, message= FALSE, warning=FALSE}
 merged_stimmen <- left_join(map,votes_per_state,by="NUTS_NAME")
 
 merged_einkommen <- left_join(map,income,by="NUTS_NAME")
 
-plot_stimmen <- ggmap(germany_map) + coord_sf(crs=st_crs(3857)) + geom_sf(data=merged_stimmen, aes(fill= Votes_AfD), inherit.aes = FALSE,alpha=0.7)+
+ggmap(germany_map) + coord_sf(crs=st_crs(3857)) + geom_sf(data=merged_stimmen, aes(fill= Votes_AfD), inherit.aes = FALSE,alpha=0.7)+
   scale_fill_gradient2("Stimmenanteil der AfD",low= "white", high = "#00008B")  + ggtitle("Stimmenanteil der AfD")
 
-plot_einkommen <- ggmap(germany_map) + coord_sf(crs=st_crs(3857)) + geom_sf(data=merged_einkommen, aes(fill= Nettoeinkommen), inherit.aes = FALSE,alpha=0.7)+
-  scale_fill_gradient2("Nettoeinkommen",low= "white", high = "#00008B") + ggtitle("Durchschnittliches Einkommen")
-
-grid.arrange(plot_stimmen, plot_einkommen, nrow=2)
+ggmap(germany_map) + coord_sf(crs=st_crs(3857)) + geom_sf(data=merged_einkommen, aes(fill= Nettoeinkommen), inherit.aes = FALSE,alpha=0.7)+
+  scale_fill_gradient2("Nettohaushaltseinkommen",low= "white", high = "#00008B") + ggtitle("Durchschnittliches Einkommen")
 ```
 
-
-Korrelation des Durchschnittseinkommens mit dem Wahlergebnis pro Bundesland korreliert.
-Zum Schluss wird hier die
-
+Zum Schluss wird hier das Wahlergebnis der AfD in Abhängigkeit des durchschnittlichen Nettohaushaltseinkommens dargestellt und die Korrelation zwischen den beiden Größen berechnet.
 
 ```{r correlate income and votes}
-
-
-x <- votes_per_state[,2]
-y <- income[,2]
-plot(x,y,xlab = "Stimmen für die AFD in %", ylab = "Durchschnittliches Einkommen in €")
+x <- income[,2]
+y <- votes_per_state[,2]
+plot(x,y,ylab = "Stimmen für die AFD in %", xlab = "Durchschnittliches Hauhaltseinkommen in €",main ="Zusammenhang zwischen Nettohaushaltseinkommen\n und Wahlergebnis der AfD")
 cor.test(x,y,method="pearson")
 ```
+
+Es besteht eine deutlich negative Korrelation zwischen dem durchschnittlichen Nettohaushaltseinkommen und dem AfD Wahlergebnis. 
