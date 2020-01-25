@@ -1,5 +1,5 @@
 ---
-title: "Geo_Visualisation"
+title: "Geo Visualisation"
 author: "Nahku Saidy"
 date: "24.01.2020"
 output:
@@ -27,19 +27,19 @@ Die Aufgabe besteht in der Darstellung von Daten im Kontext geographischer Karte
 Im Folgenden wird in die geographische Visualisierung mit R eingeführt. Es werden die Grundlagen zum Darstellen von Daten in geographischem Kontext behandelt sowie an zwei konkreten Beispielen vorgestellt. Dabei werden unter anderem Flächenwertstufenkarten verwendet.
 
 ### Zeichnen von geographischen Karten
-Die Grundlage zum Zeichnen von geographischen Grenzen bilden die sogenannten Shape-Files. In diesem Format lassen sich Geometriedaten leicht darstellen. In diesem Projekt wird ein Shape-File zur Darstellung der Grenzen der deutschen Bundesländer verwendet. Ein Shape-File ist ein Dateiformat welches geographische Vektordaten enthält. Es eignet sich unteranderem zum Zeichnen von Grenzen. Dieses [Shape-File](https://gdz.bkg.bund.de/index.php/default/digitale-geodaten/verwaltungsgebiete/nuts-gebiete-1-250-000-stand-01-01-nuts250-01-01.html) wird von dem Bundesamt für Kartographie und Geodäsie bereitgestellt. Im Folgenden Code-Ausschnitt wird das Shape-File eingelesen und beispielhaft die darin enthaltenen Daten ausgegeben.
+Die Grundlage zum Zeichnen von geographischen Grenzen bilden die sogenannten Shape-Files. In diesem Format lassen sich Geometriedaten leicht darstellen. In diesem Projekt wird ein Shape-File zur Darstellung der Grenzen der deutschen Bundesländer verwendet. Ein Shape-File ist ein Dateiformat, welches geographische Vektordaten enthält. Es eignet sich unteranderem zum Zeichnen von Grenzen. Dieses [Shape-File](https://gdz.bkg.bund.de/index.php/default/digitale-geodaten/verwaltungsgebiete/nuts-gebiete-1-250-000-stand-01-01-nuts250-01-01.html) (15.01.2020) wird von dem Bundesamt für Kartographie und Geodäsie bereitgestellt. Im folgenden Code-Ausschnitt wird das Shape-File eingelesen und beispielhaft die darin enthaltenen Daten ausgegeben.
 ```{r import shape,message=FALSE, warning=FALSE}
 #import map
 map <- st_read("data/2500_NUTS1.shp", stringsAsFactors=FALSE)
 
-#transform coordinate system to common cordinate system
+#transform coordinate system to common coordinate system
 map = st_transform(map,3857)
 
 #plot the shape-file
 ggplot(map) + geom_sf()
 ```
 
-Neben reinen Shape-Files gibt es in R die Möglichkeit auch realitätsnähere Karten zu zeichnen. Hier wird beispielhaft eine Karte von Deutschland von [OpenStreetMap](https://www.openstreetmap.de) gezeichnet.
+Neben reinen Shape-Files gibt es in R die Möglichkeit auch realitätsnähere Karten zu zeichnen. Hier wird beispielhaft eine Karte von Deutschland von [OpenStreetMap](https://www.openstreetmap.de) (15.01.2020) gezeichnet.
 
 ```{r import openstreetmap, message= FALSE}
 #get a map of germany from openstreetmap.org
@@ -49,7 +49,7 @@ ggmap(germany_map)
 ```
 
 ### Binnenwanderung
-Um die Möglichkeiten der Darstellung von Daten in geographischem Kontext zu demonstrieren werden nun Daten aus einem Datensatz zur Binnenwanderung in Deutschland analysiert und dargestellt. Dieser wird zuerst importiert und die zu visualisierenden Daten in Data Frames verpackt. Die Daten enthalten das Saldo der Binnenwanderung für jedes Bundesland von Deutschen und Ausländern.
+Um die Möglichkeiten der Darstellung von Daten in geographischem Kontext zu demonstrieren, werden nun Daten aus einem Datensatz zur Binnenwanderung in Deutschland analysiert und dargestellt. Dieser wird zuerst importiert und die zu visualisierenden Daten in Data Frames verpackt. Die Daten enthalten das Saldo der Binnenwanderung für jedes Bundesland von Deutschen und Ausländern.
 
 ```{r import binnenwanderung}
 domestic_migration_data <- read_excel("data/domestic_migration.xlsx")
@@ -172,7 +172,7 @@ ggmap(germany_map) + coord_sf(crs=st_crs(3857)) + geom_sf(data=merged_movement_s
 ### Wahlergebnisse der AfD und mögliche Korrelation mit dem verfügbaren Einkommen
 Im 2. Teil dieser Ausarbeitung wird ein weiterer Anwendungsfall zur geographischen Visualisierung behandelt. Es sollen die Wahlergebnisse der AfD bei der Bundestagswahl und das Einkommen der Bevölkerung visualisiert werden. Außerdem soll auf einen möglichen Zusammenhang der beiden Größen geprüft werden.
 
-Im Folgenden werden die Wahlergebnisse der AfD 2017 bei der Bundestagswahl und das verfügbare Einkommen pro Einwohner importiert ([Quelle verfügbares Einkommen](https://de.statista.com/statistik/daten/studie/255174/umfrage/verfuegbares-einkommen-privater-haushalte-je-einwohner-in-den-bundeslaendern/), [Quelle AfD Wahlergebnisse](https://www.bundeswahlleiter.de/bundestagswahlen/2017/ergebnisse/bund-99/land-12.html)).
+Im Folgenden werden die Wahlergebnisse der AfD 2017 bei der Bundestagswahl und das verfügbare Einkommen pro Einwohner importiert ([Quelle verfügbares Einkommen] (https://de.statista.com/statistik/daten/studie/255174/umfrage/verfuegbares-einkommen-privater-haushalte-je-einwohner-in-den-bundeslaendern/) (20.01.2020), [Quelle AfD Wahlergebnisse](https://www.bundeswahlleiter.de/bundestagswahlen/2017/ergebnisse/bund-99/land-12.html)) (15.01.2020).
 ```{r vote income data, message= FALSE,warning=FALSE}
 #import election data from the german election of 2017
 votes <- read.csv(file="data/btw17_kerg.csv", sep=";")
